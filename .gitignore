@@ -1,0 +1,44 @@
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Node ----
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+dist/
+dist-ssr/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---- Python ----
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ---- Env / secrets ----
+.env
+*.env
+
+# ---- Alembic/Python build ----
+*.log
+
+# ---- Docker volumes / local data ----
+postgres_data/
+.docker/
+
+# ---- VSCode / IDE ----
+.vscode/
+.idea/
+
+# ---- Windows ----
+*.lnk
