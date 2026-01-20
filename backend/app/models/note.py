@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, Index
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.db import Base
 
 
@@ -6,10 +9,14 @@ class Note(Base):
     __tablename__ = "notes"
 
     id = Column(Integer, primary_key=True, index=True)
-    tx_id = Column(String, index=True, nullable=False)
-    content = Column(String, nullable=False)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    tx_id = Column(String(64), ForeignKey("transactions.tx_id", ondelete="CASCADE"), index=True, nullable=False)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), nullable=True)
 
-Index("ix_notes_tx_id", Note.tx_id)
+    body = Column(String(2000), nullable=False)
+    author = Column(String(120), nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    transaction = relationship("Transaction", back_populates="notes")
+    case = relationship("Case", back_populates="notes")

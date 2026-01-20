@@ -1,17 +1,22 @@
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
 
 
 class NoteUpsert(BaseModel):
     tx_id: str
-    content: str
+    body: str
+    author: Optional[str] = None
+    case_id: Optional[int] = None
 
 
 class NoteOut(BaseModel):
     id: int
     tx_id: str
-    content: str
+    body: str
+    author: Optional[str] = None
+    case_id: Optional[int] = None
     created_at: datetime
-    updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True

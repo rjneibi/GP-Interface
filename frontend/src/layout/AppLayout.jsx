@@ -3,7 +3,6 @@ import { clearSession, getUser, getRole } from "../auth/session";
 
 export default function AppLayout() {
   const navigate = useNavigate();
-
   const user = getUser();
   const role = getRole(); // "analyst" | "admin" | "superadmin"
 
@@ -12,14 +11,22 @@ export default function AppLayout() {
     navigate("/login", { replace: true });
   };
 
-  // Role-aware navigation
-  const navItems = [
-    { to: "/dashboard", label: "Dashboard", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/transactions", label: "Transactions", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/reports", label: "Reports", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/admin", label: "Admin", roles: ["admin", "superadmin"] },
-    { to: "/superadmin", label: "SuperAdmin", roles: ["superadmin"] },
-  ].filter((item) => item.roles.includes(role));
+const navItems = [
+  { to: "/dashboard", label: "Dashboard", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/transactions", label: "Transactions", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/cases", label: "Cases", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/intelligence", label: "Intelligence", roles: ["analyst", "admin", "superadmin"] },
+
+  // ✅ NEW Analyst feature pages (Step 2)
+  { to: "/decision-assistant", label: "Decision Assistant", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/pattern-explorer", label: "Pattern Explorer", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/performance", label: "Performance", roles: ["analyst", "admin", "superadmin"] },
+
+  { to: "/reports", label: "Reports", roles: ["analyst", "admin", "superadmin"] },
+  { to: "/admin", label: "Admin", roles: ["admin", "superadmin"] },
+  { to: "/superadmin", label: "SuperAdmin", roles: ["superadmin"] },
+].filter((item) => item.roles.includes(role));
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex">
@@ -27,9 +34,8 @@ export default function AppLayout() {
       <aside className="w-64 hidden md:flex flex-col border-r border-white/10 bg-white/5">
         <div className="p-5 border-b border-white/10">
           <div className="text-lg font-semibold">Secure Fraud Console</div>
-          <div className="text-xs text-white/50 mt-1">GP2 System</div>
+          <div className="text-xs text-white/50 mt-1">Graduation Project • Frontend MVP</div>
 
-          {/* user + role */}
           <div className="mt-3 text-xs text-white/60">
             {user?.email ? (
               <>
@@ -50,9 +56,7 @@ export default function AppLayout() {
               to={item.to}
               className={({ isActive }) =>
                 `block rounded-xl px-3 py-2 text-sm transition ${
-                  isActive
-                    ? "bg-white/10 text-white"
-                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                  isActive ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5 hover:text-white"
                 }`
               }
             >
@@ -72,22 +76,23 @@ export default function AppLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1">
-        {/* Topbar */}
+      <div className="flex-1 flex flex-col">
         <header className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-white/5">
           <div className="text-sm text-white/70">
-            Fraud Detection Platform • <span className="text-white">v1</span>
+            Fraud Detection Platform • <span className="text-white">Frontend-First MVP</span>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-xs text-white/60 hidden sm:inline">
               {user?.email ? `${user.email} • ${role}` : "Role-based system demo"}
             </span>
-            <div className="h-9 w-9 rounded-full bg-sky-500/90" />
+            <div className="h-9 w-9 rounded-full bg-sky-500/90 flex items-center justify-center text-xs font-bold">
+              AI
+            </div>
           </div>
         </header>
 
-        <main className="p-6">
+        <main className="p-6 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

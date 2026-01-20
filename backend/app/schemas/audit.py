@@ -1,18 +1,13 @@
+from pydantic import BaseModel
+from typing import Optional, Any, Dict
 from datetime import datetime
-from typing import Any, Optional
-
-from pydantic import BaseModel, ConfigDict
-
-
-class AuditCreate(BaseModel):
-    action: str
-    meta: Optional[dict[str, Any]] = None
 
 
 class AuditOut(BaseModel):
     id: int
     action: str
-    meta: Optional[dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True

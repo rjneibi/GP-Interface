@@ -1,10 +1,12 @@
+from typing import Optional, Dict, Any
+
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.models.audit import AuditLog
 
 
-def add_audit(db: Session, action: str, meta: dict | None = None):
+def add_audit(db: Session, action: str, meta: Optional[Dict[str, Any]] = None):
     obj = AuditLog(action=action, meta=meta)
     db.add(obj)
     db.commit()

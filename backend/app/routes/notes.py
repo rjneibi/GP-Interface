@@ -1,33 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.note import NoteOut, NoteUpsert
-from app.crud.notes import get_note_by_tx, upsert_note, delete_note
-from app.crud.audit import add_audit
+from app.crud.notes import list_notes, upsert_note
 
-router = APIRouter()
-
-
-@router.get("/{tx_id}", response_model=NoteOut)
-def get_note(tx_id: str, db: Session = Depends(get_db)):
-    note = get_note_by_tx(db, tx_id)
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    return note
+router = APIRouter(prefix="/api/notes", tags=["notes"])
 
 
-@router.put("/", response_model=NoteOut)
-def put_note(payload: NoteUpsert, db: Session = Depends(get_db)):
-    note = upsert_note(db, payload.tx_id, payload.content)
-    add_audit(db, "TX_NOTE_UPSERT", {"tx_id": payload.tx_id, "length": len(payload.content or "")})
-    return note
+@router.get("/", response_model=list[NoteOut])
+def get_for_tx(tx_id: str, limit: int = 200, db: Session = Depends(get_db)):
+    return list_notes(db, tx_id=tx_id, limit=limit)
 
 
-@router.delete("/{tx_id}")
-def remove(tx_id: str, db: Session = Depends(get_db)):
-    ok = delete_note(db, tx_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Note not found")
-    add_audit(db, "TX_NOTE_DELETED", {"tx_id": tx_id})
-    return {"deleted": True}
+@router.post("/", response_model=NoteOut)
+def create(payload: NoteUpsert, db: Session = Depends(get_db)):
+    return upsert_note(db, payload)

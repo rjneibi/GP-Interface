@@ -1,7 +1,14 @@
-// frontend/src/services/apiClient.js
+// src/services/apiClient.js
 // Single place for all backend calls.
+// Supports MOCK mode while keeping a fixed API contract.
+
+import { mockDb } from "./mockDb";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+const USE_MOCKS =
+  String(import.meta.env.VITE_USE_MOCKS || "").toLowerCase() === "true";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -21,22 +28,91 @@ async function request(path, options = {}) {
 
 // ---- Transactions ----
 export const txApi = {
-  list: () => request("/api/transactions/"),
-  create: (payload) =>
-    request("/api/transactions/", { method: "POST", body: JSON.stringify(payload) }),
-  get: (txId) => request(`/api/transactions/${encodeURIComponent(txId)}`),
+  async list() {
+    if (USE_MOCKS) {
+      await sleep(150);
+      return mockDb.listTx();
+    }
+    return request("/api/transactions/");
+  },
+
+  async create(payload) {
+    if (USE_MOCKS) {
+      await sleep(150);
+
+      const tx = mockDb.createTx(payload);
+
+      // ✅ Auto-create a case if policy triggers (risk >= RED)
+      if (typeof mockDb.maybeCreateCaseFromTx === "function") {
+        mockDb.maybeCreateCaseFromTx(tx);
+      }
+
+      mockDb.addAudit("TX_CREATED", { tx_id: tx.tx_id, amount: tx.amount });
+      return tx;
+    }
+
+    return request("/api/transactions/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async get(txId) {
+    if (USE_MOCKS) {
+      await sleep(120);
+      const tx = mockDb.getTx(txId);
+      if (!tx) throw new Error("Transaction not found");
+      return tx;
+    }
+    return request(`/api/transactions/${encodeURIComponent(txId)}`);
+  },
 };
 
 // ---- Notes ----
 export const notesApi = {
-  listByTx: (txId) => request(`/api/notes/${encodeURIComponent(txId)}`),
-  create: (payload) =>
-    request("/api/notes/", { method: "POST", body: JSON.stringify(payload) }),
-  deleteByTx: (txId) =>
-    request(`/api/notes/${encodeURIComponent(txId)}`, { method: "DELETE" }),
+  async listByTx(txId) {
+    if (USE_MOCKS) {
+      await sleep(120);
+      return mockDb.listNotes(txId); // ALWAYS array
+    }
+
+    const data = await request(`/api/notes/${encodeURIComponent(txId)}`);
+    return Array.isArray(data) ? data : data ? [data] : [];
+  },
+
+  async create(payload) {
+    if (USE_MOCKS) {
+      await sleep(150);
+      const note = mockDb.createNote(payload);
+      mockDb.addAudit("NOTE_ADDED", { tx_id: payload.tx_id });
+      return note;
+    }
+
+    return request("/api/notes/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteByTx(txId) {
+    if (USE_MOCKS) {
+      await sleep(120);
+      const out = mockDb.deleteNotes(txId);
+      mockDb.addAudit("NOTES_DELETED", { tx_id: txId });
+      return out;
+    }
+
+    return request(`/api/notes/${encodeURIComponent(txId)}`, { method: "DELETE" });
+  },
 };
 
 // ---- Audit ----
 export const auditApi = {
-  list: () => request("/api/audit/"),
+  async list() {
+    if (USE_MOCKS) {
+      await sleep(120);
+      return mockDb.listAudit();
+    }
+    return request("/api/audit/");
+  },
 };

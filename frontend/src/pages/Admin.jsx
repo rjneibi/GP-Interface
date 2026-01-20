@@ -10,100 +10,144 @@ import {
   initAdminStore,
 } from "../services/adminStore";
 
-// ✅ init once
-initAdminStore();
+function safeSnap() {
+  // Always return safe defaults so UI NEVER crashes
+  const settings = getSettings?.() || {};
+  const users = Array.isArray(getUsers?.()) ? getUsers() : [];
+  const logs = Array.isArray(getAuditLogs?.()) ? getAuditLogs() : [];
 
-function readSnap() {
-  const s = getSettings();
   return {
-    users: getUsers(),
-    settings: s,
-    logs: getAuditLogs(),
+    settings: {
+      orangeThreshold: Number.isFinite(Number(settings.orangeThreshold))
+        ? Number(settings.orangeThreshold)
+        : 40,
+      redThreshold: Number.isFinite(Number(settings.redThreshold))
+        ? Number(settings.redThreshold)
+        : 70,
+      autoBlockRed: typeof settings.autoBlockRed === "boolean" ? settings.autoBlockRed : false,
+    },
+    users,
+    logs,
   };
 }
 
 export default function Admin() {
-  const [snap, setSnap] = useState(() => readSnap());
+  const [snap, setSnap] = useState(() => safeSnap());
 
   // create user form
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("analyst");
 
-  // editable inputs
-  const [orangeTh, setOrangeTh] = useState(() => readSnap().settings.orangeThreshold);
-  const [redTh, setRedTh] = useState(() => readSnap().settings.redThreshold);
-  const [autoBlock, setAutoBlock] = useState(() => readSnap().settings.autoBlockRed);
+  // editable inputs (safe default)
+  const [orangeTh, setOrangeTh] = useState(() => safeSnap().settings.orangeThreshold);
+  const [redTh, setRedTh] = useState(() => safeSnap().settings.redThreshold);
+  const [autoBlock, setAutoBlock] = useState(() => safeSnap().settings.autoBlockRed);
 
   // search
   const [q, setQ] = useState("");
 
-  const { users, settings, logs } = snap;
+  const pullLatest = () => setSnap(safeSnap());
 
-  const pullLatest = () => setSnap(readSnap());
-
-  // ✅ Live refresh: so Admin sees TX actions/notes immediately
+  // ✅ IMPORTANT: init inside effect (NOT at module scope)
   useEffect(() => {
+    try {
+      initAdminStore?.();
+    } catch (e) {
+      console.error("initAdminStore failed:", e);
+    }
+    pullLatest();
+
     const t = setInterval(() => {
-      // (kept for safety in case someone clears storage)
-      initAdminStore();
-      setSnap(readSnap());
-    }, 700);
+      try {
+        initAdminStore?.(); // safe re-init
+      } catch (e) {
+        console.error("initAdminStore interval failed:", e);
+      }
+      setSnap(safeSnap());
+    }, 800);
 
     return () => clearInterval(t);
   }, []);
 
+  const { users, settings, logs } = snap;
+
   const filteredUsers = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return users;
-    return users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(query) ||
-        u.role.toLowerCase().includes(query) ||
-        u.status.toLowerCase().includes(query) ||
-        u.id.toLowerCase().includes(query)
-    );
+
+    return users.filter((u) => {
+      const email = String(u.email || "").toLowerCase();
+      const role = String(u.role || "").toLowerCase();
+      const status = String(u.status || "").toLowerCase();
+      const id = String(u.id || "").toLowerCase(); // ✅ no crash if id is number
+
+      return (
+        email.includes(query) ||
+        role.includes(query) ||
+        status.includes(query) ||
+        id.includes(query)
+      );
+    });
   }, [users, q]);
 
   const onCreateUser = () => {
     try {
-      createUser({ email, role });
+      if (!email.trim()) throw new Error("Email is required");
+      createUser({ email: email.trim(), role });
       setEmail("");
       pullLatest();
     } catch (e) {
-      alert(e.message);
+      alert(e?.message || "Create user failed");
     }
   };
 
   const onToggleUser = (id) => {
-    toggleUserStatus(id);
-    pullLatest();
+    try {
+      toggleUserStatus(id);
+      pullLatest();
+    } catch (e) {
+      alert(e?.message || "Toggle failed");
+    }
   };
 
   const onSaveThresholds = () => {
     try {
+      const o = Number(orangeTh);
+      const r = Number(redTh);
+
+      if (!Number.isFinite(o) || o <= 0 || o >= 100) throw new Error("Orange threshold must be 1..99");
+      if (!Number.isFinite(r) || r <= 0 || r > 100) throw new Error("Red threshold must be 1..100");
+      if (o >= r) throw new Error("Orange must be < Red");
+
       updateThresholds({
-        orangeThreshold: Number(orangeTh),
-        redThreshold: Number(redTh),
+        orangeThreshold: o,
+        redThreshold: r,
         autoBlockRed: Boolean(autoBlock),
       });
+
       pullLatest();
       alert("Thresholds updated ✅");
     } catch (e) {
-      alert(e.message);
+      alert(e?.message || "Save failed");
     }
   };
 
   const onResetDemo = () => {
     if (!confirm("Reset admin demo data?")) return;
-    resetAdminDemo();
-    initAdminStore();
 
-    const next = readSnap();
-    setSnap(next);
+    try {
+      resetAdminDemo();
+      initAdminStore?.();
 
-    setOrangeTh(next.settings.orangeThreshold);
-    setRedTh(next.settings.redThreshold);
-    setAutoBlock(next.settings.autoBlockRed);
+      const next = safeSnap();
+      setSnap(next);
+
+      setOrangeTh(next.settings.orangeThreshold);
+      setRedTh(next.settings.redThreshold);
+      setAutoBlock(next.settings.autoBlockRed);
+    } catch (e) {
+      alert(e?.message || "Reset failed");
+    }
   };
 
   return (
@@ -168,8 +212,7 @@ export default function Admin() {
             </button>
 
             <div className="text-xs text-white/45">
-              Stored: ORANGE ≥ <b>{settings?.orangeThreshold ?? "—"}</b> • RED ≥{" "}
-              <b>{settings?.redThreshold ?? "—"}</b>
+              Stored: ORANGE ≥ <b>{settings.orangeThreshold}</b> • RED ≥ <b>{settings.redThreshold}</b>
             </div>
           </div>
         </Card>
@@ -208,21 +251,21 @@ export default function Admin() {
           </div>
         </Card>
 
-        <Card title="Audit Logs" subtitle="System actions (very important for fraud systems)">
+        <Card title="Audit Logs" subtitle="System actions (important for fraud systems)">
           <div className="space-y-2 max-h-[320px] overflow-auto pr-1">
             {logs.length === 0 ? (
               <div className="text-sm text-white/60">No audit logs yet.</div>
             ) : (
-              logs
-                .slice()
-                .reverse()
-                .slice(0, 30)
+              [...logs]
+                .slice(0, 40)
                 .map((l) => (
-                  <div key={l.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-xs text-white/50">{l.time}</div>
-                    <div className="text-sm font-semibold mt-1">{l.action}</div>
+                  <div key={l.id || `${l.action}-${l.created_at || l.time || Math.random()}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-xs text-white/50">
+                      {l.time || l.created_at || "—"}
+                    </div>
+                    <div className="text-sm font-semibold mt-1">{l.action || "—"}</div>
                     <div className="text-xs text-white/60 mt-1">
-                      {JSON.stringify(l.meta)}
+                      {JSON.stringify(l.meta || {})}
                     </div>
                   </div>
                 ))
@@ -257,12 +300,12 @@ export default function Admin() {
 
         {filteredUsers.map((u) => (
           <div
-            key={u.id}
+            key={u.id || u.email}
             className="grid grid-cols-5 gap-2 px-4 py-3 text-sm border-b border-white/5 last:border-b-0"
           >
-            <div className="text-white/80">{u.id}</div>
-            <div className="text-white/70">{u.email}</div>
-            <div className="text-white/70 uppercase">{u.role}</div>
+            <div className="text-white/80">{String(u.id ?? "—")}</div>
+            <div className="text-white/70">{String(u.email ?? "—")}</div>
+            <div className="text-white/70 uppercase">{String(u.role ?? "—")}</div>
             <div className="text-white/70">
               <span
                 className={`inline-flex rounded-full border px-3 py-1 text-xs ${
@@ -271,7 +314,7 @@ export default function Admin() {
                     : "bg-white/5 text-white/60 border-white/10"
                 }`}
               >
-                {u.status}
+                {String(u.status ?? "—")}
               </span>
             </div>
             <div>

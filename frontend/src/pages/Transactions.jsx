@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { getSettings } from "../services/adminStore"; // thresholds still local for now
+import { useEffect, useMemo, useState } from "react";
+import { getSettings } from "../services/adminStore";
 import { txApi, notesApi } from "../services/apiClient";
+import { txStreamService } from "../services/txStreamService";
 
 const badgeClass = (label) => {
   if (label === "GREEN")
@@ -17,25 +18,6 @@ const labelFromRisk = (risk, settings) => {
   if (risk >= orange) return "ORANGE";
   return "GREEN";
 };
-
-const randBetween = (min, max) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-const countries = ["UAE", "KSA", "Qatar", "UK", "USA", "Germany", "India"];
-const devices = ["iPhone", "Android", "Windows", "Mac", "ATM", "POS"];
-const channels = ["Mobile App", "Web", "ATM", "POS"];
-const merchants = [
-  "Amazon",
-  "Noon",
-  "Apple",
-  "Careem",
-  "Talabat",
-  "Booking.com",
-  "Crypto Exchange",
-];
-const cardTypes = ["VISA", "MasterCard", "AMEX"];
 
 function computeRisk(amount) {
   const maxAmount = 40000;
@@ -69,30 +51,21 @@ function explainText(tx, risk, settings) {
   if (risk >= red) {
     reasons.push(`risk score (${risk}%) is above the RED threshold (${red}%)`);
   } else if (risk >= orange) {
-    reasons.push(
-      `risk score (${risk}%) is above the ORANGE threshold (${orange}%)`
-    );
+    reasons.push(`risk score (${risk}%) is above the ORANGE threshold (${orange}%)`);
   } else {
     reasons.push(`risk score (${risk}%) remains below policy thresholds`);
   }
 
-  if (Number(tx.amount || 0) >= 15000) {
-    reasons.push(`high amount (${Number(tx.amount).toLocaleString()} AED)`);
-  }
+  if (Number(tx.amount || 0) >= 15000) reasons.push(`high amount (${Number(tx.amount).toLocaleString()} AED)`);
   if (tx.country !== "UAE") reasons.push(`foreign origin detected (${tx.country})`);
-  if (String(tx.merchant || "").includes("Crypto"))
-    reasons.push(`high-risk merchant category (Crypto)`);
+  if (String(tx.merchant || "").includes("Crypto")) reasons.push(`high-risk merchant category (Crypto)`);
   if (tx.device === "ATM") reasons.push(`ATM channel/device risk`);
 
-  return `This transaction was classified as ${labelFromRisk(
-    risk,
-    settings
-  )} because ${reasons.join(", ")}.`;
+  return `This transaction was classified as ${labelFromRisk(risk, settings)} because ${reasons.join(", ")}.`;
 }
 
 export default function Transactions() {
   const [settings, setSettings] = useState(() => getSettings());
-  const [streamOn, setStreamOn] = useState(false);
 
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -100,15 +73,21 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const timerRef = useRef(null);
+  // global stream state
+  const [streamOn, setStreamOn] = useState(() => txStreamService.isRunning());
 
-  // refresh settings loop (local thresholds for now)
+  // refresh settings loop
   useEffect(() => {
     const t = setInterval(() => setSettings(getSettings()), 800);
     return () => clearInterval(t);
   }, []);
 
-  // initial load + refresh loop
+  // subscribe to stream state
+  useEffect(() => {
+    return txStreamService.subscribe((v) => setStreamOn(v));
+  }, []);
+
+  // load tx list loop (still ok per-page)
   useEffect(() => {
     let alive = true;
 
@@ -134,46 +113,6 @@ export default function Transactions() {
       clearInterval(t);
     };
   }, []);
-
-  // simulated stream (POST to backend)
-  useEffect(() => {
-    if (!streamOn) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-      return;
-    }
-
-    timerRef.current = setInterval(async () => {
-      const txId = `TX-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const payload = {
-        tx_id: txId,
-        user: `User ${String.fromCharCode(randBetween(65, 90))}`,
-        amount: randBetween(50, 40000),
-        country: pick(countries),
-        device: pick(devices),
-        channel: pick(channels),
-        merchant: pick(merchants),
-        card_type: pick(cardTypes),
-        hour: randBetween(0, 23),
-        ts: new Date().toISOString(),
-      };
-
-      try {
-        await txApi.create(payload);
-        const txs = await txApi.list();
-        setRows(Array.isArray(txs) ? txs : []);
-      } catch (e) {
-        // If duplicate tx_id happens, just ignore and continue
-        console.error(e);
-      }
-    }, 1100);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-    };
-  }, [streamOn]);
 
   const viewRows = useMemo(() => {
     return rows.map((t) => {
@@ -214,7 +153,7 @@ export default function Transactions() {
           </button>
 
           <button
-            onClick={() => setStreamOn((v) => !v)}
+            onClick={() => txStreamService.toggle()}
             className={`rounded-xl px-4 py-2 text-sm font-semibold transition border ${
               streamOn
                 ? "bg-rose-500/15 text-rose-200 border-rose-500/30 hover:bg-rose-500/20"
@@ -281,11 +220,7 @@ export default function Transactions() {
       </div>
 
       {selected && (
-        <TxModal
-          tx={selected}
-          onClose={() => setSelected(null)}
-          settings={settings}
-        />
+        <TxModal tx={selected} onClose={() => setSelected(null)} settings={settings} />
       )}
     </div>
   );
@@ -305,12 +240,8 @@ function TxModal({ tx, onClose, settings }) {
 
   const reasons = useMemo(() => fakeExplainability(tx), [tx]);
 
-  const explanation = useMemo(
-    () => explainText(tx, risk, settings),
-    [tx, risk, settings]
-  );
+  const explanation = useMemo(() => explainText(tx, risk, settings), [tx, risk, settings]);
 
-  // Load note from backend by tx_id
   useEffect(() => {
     let alive = true;
 
@@ -320,9 +251,8 @@ function TxModal({ tx, onClose, settings }) {
         setNoteLoading(true);
         const items = await notesApi.listByTx(tx.tx_id);
         if (!alive) return;
-        // assume latest note first or single
         const first = Array.isArray(items) ? items[0] : null;
-        setNote(first?.content || "");
+        setNote(first?.content || first?.note || "");
       } catch (e) {
         if (!alive) return;
         setNoteErr(e?.message || "Failed to load note");
@@ -339,7 +269,6 @@ function TxModal({ tx, onClose, settings }) {
 
   const act = (newStatus) => {
     setStatus(newStatus);
-    // optional: call audit endpoint in backend if you implement it
   };
 
   const save = async () => {
@@ -458,16 +387,10 @@ function TxModal({ tx, onClose, settings }) {
 
         <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="text-sm font-semibold">Analyst Notes</div>
-          <div className="text-xs text-white/50 mt-1">
-            Stored in Postgres now.
-          </div>
+          <div className="text-xs text-white/50 mt-1">Stored in Postgres now.</div>
 
-          {noteLoading && (
-            <div className="mt-3 text-xs text-white/60">Loading note...</div>
-          )}
-          {noteErr && (
-            <div className="mt-3 text-xs text-rose-200">{noteErr}</div>
-          )}
+          {noteLoading && <div className="mt-3 text-xs text-white/60">Loading note...</div>}
+          {noteErr && <div className="mt-3 text-xs text-rose-200">{noteErr}</div>}
 
           <textarea
             value={note}
