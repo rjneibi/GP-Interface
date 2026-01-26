@@ -210,8 +210,35 @@ export default function Transactions() {
   const orange = settings?.orangeThreshold ?? 40;
   const red = settings?.redThreshold ?? 70;
 
-  const clearAllHint = () => {
-    alert("Clear all is not implemented in backend yet.\nFor demo: just stop the stream or refresh.");
+  const clearAllTransactions = async () => {
+    if (!confirm("Are you sure you want to delete ALL transactions? This cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      // Delete all transactions one by one
+      for (const tx of rows) {
+        try {
+          await txApi.delete(tx.tx_id);
+        } catch (e) {
+          console.error(`Failed to delete ${tx.tx_id}:`, e);
+        }
+      }
+      
+      // Refresh the list
+      setRows([]);
+      alert("All transactions deleted successfully!");
+      
+      // Reload from server
+      const fresh = await txApi.list();
+      setRows(fresh || []);
+    } catch (error) {
+      console.error("Error clearing transactions:", error);
+      alert("Failed to clear some transactions");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetFilters = () => {
@@ -240,7 +267,7 @@ export default function Transactions() {
 
         <div className="flex gap-2">
           <button
-            onClick={clearAllHint}
+            onClick={clearAllTransactions}
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 hover:bg-white/10 transition"
           >
             Clear
