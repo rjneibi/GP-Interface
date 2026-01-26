@@ -7,7 +7,7 @@
 - `API 404 /api/transactions/ :: {"detail":"Not Found"}`
 
 ### Root Cause
-The frontend `.env` file had `VITE_API_BASE=https://transact-shield-2.preview.emergentagent.com/api`
+The frontend `.env` file had `VITE_API_BASE=https://fraudguard-40.preview.emergentagent.com/api`
 
 Since the backend routes already include the `/api` prefix, this caused double prefixing:
 - Frontend tried to call: `/api/api/transactions/` ❌
@@ -16,20 +16,20 @@ Since the backend routes already include the `/api` prefix, this caused double p
 ### Solution Applied
 Updated `/app/frontend/.env`:
 ```env
-VITE_API_BASE=https://transact-shield-2.preview.emergentagent.com
+VITE_API_BASE=https://fraudguard-40.preview.emergentagent.com
 VITE_USE_MOCKS=false
 ```
 
 Now the API calls work correctly:
 - Frontend makes request: `${VITE_API_BASE}/api/transactions/`
-- Full URL: `https://transact-shield-2.preview.emergentagent.com/api/transactions/` ✅
+- Full URL: `https://fraudguard-40.preview.emergentagent.com/api/transactions/` ✅
 
 ### Verification
 ```bash
-curl https://transact-shield-2.preview.emergentagent.com/api/transactions/
+curl https://fraudguard-40.preview.emergentagent.com/api/transactions/
 # Returns: 4 transactions ✅
 
-curl https://transact-shield-2.preview.emergentagent.com/api/cases/
+curl https://fraudguard-40.preview.emergentagent.com/api/cases/
 # Returns: 3 cases ✅
 ```
 
@@ -104,7 +104,7 @@ Full database access guide: `/app/DATABASE_ACCESS_GUIDE.md`
 ## 🎯 Testing the System
 
 ### View the Application
-URL: https://transact-shield-2.preview.emergentagent.com
+URL: https://fraudguard-40.preview.emergentagent.com
 
 ### Login Credentials
 - Analyst: `analyst` / `analyst123`
@@ -168,7 +168,7 @@ All systems operational:
 ## 🎉 You're All Set!
 
 The application is now fully functional and accessible. You can:
-1. Access the UI at: https://transact-shield-2.preview.emergentagent.com
+1. Access the UI at: https://fraudguard-40.preview.emergentagent.com
 2. View database using: `sudo -u postgres psql -d frauddb`
 3. Test the risk scoring and case creation features
 4. Explore the database schemas and data

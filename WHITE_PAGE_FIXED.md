@@ -31,7 +31,7 @@ The frontend had **import errors** - some files were trying to import old functi
 
 ### Step 1: Access the Website
 ```
-https://transact-shield-2.preview.emergentagent.com
+https://fraudguard-40.preview.emergentagent.com
 ```
 
 **Expected:** Beautiful login page with fraud detection logo
@@ -196,4 +196,4 @@ The system is now fully functional with:
 - ✅ Complete security
 
 **Start testing now at:**
-https://transact-shield-2.preview.emergentagent.com
+https://fraudguard-40.preview.emergentagent.com

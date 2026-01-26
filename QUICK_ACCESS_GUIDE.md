@@ -3,7 +3,7 @@
 ## 🌐 Application URL
 
 **Access the application here:**
-https://transact-shield-2.preview.emergentagent.com
+https://fraudguard-40.preview.emergentagent.com
 
 ## 🔑 Login Credentials
 

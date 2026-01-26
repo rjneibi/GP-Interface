@@ -6,7 +6,7 @@
 
 **Access the application:**
 ```
-https://transact-shield-2.preview.emergentagent.com
+https://fraudguard-40.preview.emergentagent.com
 ```
 
 **Login Credentials:**
@@ -176,11 +176,11 @@ TOKEN="your_jwt_token_here"
 
 # View all tables
 curl -H "Authorization: Bearer $TOKEN" \
-  https://transact-shield-2.preview.emergentagent.com/api/database/tables
+  https://fraudguard-40.preview.emergentagent.com/api/database/tables
 
 # View users table schema
 curl -H "Authorization: Bearer $TOKEN" \
-  https://transact-shield-2.preview.emergentagent.com/api/database/tables/users
+  https://fraudguard-40.preview.emergentagent.com/api/database/tables/users
 ```
 
 **Or use the helper script:**
@@ -212,7 +212,7 @@ bash /tmp/db_access.sh
 **Export CSV (Admin only):**
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://transact-shield-2.preview.emergentagent.com/api/reports/export/csv" \
+  "https://fraudguard-40.preview.emergentagent.com/api/reports/export/csv" \
   -o fraud_report.csv
 ```
 
@@ -320,7 +320,7 @@ echo ""
 
 # Test 1: Login
 echo "1. Testing login..."
-curl -X POST https://transact-shield-2.preview.emergentagent.com/api/auth/login \
+curl -X POST https://fraudguard-40.preview.emergentagent.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"Admin123!"}' \
   -s | python3 -m json.tool > /tmp/login_response.json
@@ -337,7 +337,7 @@ fi
 echo ""
 echo "2. Testing get current user..."
 curl -H "Authorization: Bearer $TOKEN" \
-  https://transact-shield-2.preview.emergentagent.com/api/auth/me \
+  https://fraudguard-40.preview.emergentagent.com/api/auth/me \
   -s | python3 -m json.tool > /tmp/user_info.json
 
 if grep -q "username" /tmp/user_info.json; then
@@ -351,7 +351,7 @@ fi
 echo ""
 echo "3. Testing list users..."
 curl -H "Authorization: Bearer $TOKEN" \
-  https://transact-shield-2.preview.emergentagent.com/api/auth/users \
+  https://fraudguard-40.preview.emergentagent.com/api/auth/users \
   -s | python3 -m json.tool > /tmp/users_list.json
 
 USER_COUNT=$(cat /tmp/users_list.json | python3 -c "import sys, json; print(len(json.load(sys.stdin)))")
