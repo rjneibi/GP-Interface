@@ -69,7 +69,7 @@ export default function AppLayout() {
         {/* Logout pinned (always visible) */}
         <div className="p-4 border-t border-white/10 flex-shrink-0">
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition"
           >
             Logout
