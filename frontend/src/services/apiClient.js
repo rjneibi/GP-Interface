@@ -11,8 +11,19 @@ const USE_MOCKS =
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function request(path, options = {}) {
+  // Add authorization token if available
+  const token = localStorage.getItem("access_token");
+  const headers = { 
+    "Content-Type": "application/json", 
+    ...(options.headers || {}) 
+  };
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options,
   });
 
