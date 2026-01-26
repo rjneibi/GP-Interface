@@ -284,8 +284,16 @@ export default function Transactions() {
 
         <div className="flex gap-2">
           <button
+            onClick={exportToCsv}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 hover:bg-white/10 transition"
+            data-testid="export-csv-btn"
+          >
+            Export CSV
+          </button>
+          <button
             onClick={clearAllTransactions}
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 hover:bg-white/10 transition"
+            data-testid="clear-transactions-btn"
           >
             Clear
           </button>
@@ -297,6 +305,7 @@ export default function Transactions() {
                 ? "bg-rose-500/15 text-rose-200 border-rose-500/30 hover:bg-rose-500/20"
                 : "bg-emerald-500/15 text-emerald-200 border-emerald-500/30 hover:bg-emerald-500/20"
             }`}
+            data-testid="toggle-stream-btn"
           >
             {streamOn ? "Stop Stream" : "Start Stream"}
           </button>
