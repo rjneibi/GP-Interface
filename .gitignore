@@ -42,3 +42,7 @@ postgres_data/
 
 # ---- Windows ----
 *.lnk
+-e 
+# Environment files
+*.env
+*.env.*
