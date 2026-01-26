@@ -4,6 +4,23 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict
 
 
+class TransactionCreate(BaseModel):
+    tx_id: str
+    user: str
+    amount: float
+    country: Optional[str] = None
+    device: Optional[str] = None
+    channel: Optional[str] = None
+    merchant: Optional[str] = None
+    card_type: Optional[str] = None
+    hour: Optional[int] = None
+    ts: datetime
+    currency: Optional[str] = "AED"
+    velocity: Optional[int] = None
+    device_new: Optional[bool] = False
+    user_name: Optional[str] = None
+
+
 class TransactionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
