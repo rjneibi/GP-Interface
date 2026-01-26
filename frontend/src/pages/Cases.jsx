@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { caseApi } from "../services/caseApi";
 import CaseDrawer from "./CaseDetails";
-
-const badge = {
-  NEW: "bg-sky-500/15 text-sky-200 border-sky-500/20",
-  IN_REVIEW: "bg-amber-500/15 text-amber-200 border-amber-500/20",
-  ESCALATED: "bg-rose-500/15 text-rose-200 border-rose-500/20",
-  CLOSED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/20",
-};
 
 const toMins = (ms) => Math.max(0, Math.floor(ms / 60000));
 
@@ -16,37 +10,49 @@ function fmtPct(x) {
   return `${Math.round(x)}%`;
 }
 
-function InsightCard({ label, value, hint }) {
+function InsightCard({ label, value, hint, darkMode }) {
+  const cardClass = darkMode ? "border-white/10 bg-white/5" : "border-gray-200 bg-white";
+  const textClass = darkMode ? "text-white" : "text-gray-900";
+  const labelClass = darkMode ? "text-white/50" : "text-gray-500";
+  const hintClass = darkMode ? "text-white/40" : "text-gray-400";
+  
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="text-xs text-white/50">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{value}</div>
-      {hint ? <div className="text-xs text-white/40 mt-1">{hint}</div> : null}
+    <div className={`rounded-xl border p-4 ${cardClass}`}>
+      <div className={`text-xs ${labelClass}`}>{label}</div>
+      <div className={`text-2xl font-semibold mt-1 ${textClass}`}>{value}</div>
+      {hint ? <div className={`text-xs mt-1 ${hintClass}`}>{hint}</div> : null}
     </div>
   );
 }
 
-function Select({ value, onChange, children }) {
+function Select({ value, onChange, children, darkMode }) {
+  const selectClass = darkMode 
+    ? "border-white/10 bg-black/30 text-white/80" 
+    : "border-gray-300 bg-white text-gray-700";
+  
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-10 rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-white/80 outline-none focus:ring-2 focus:ring-sky-400/30"
+      className={`h-10 rounded-lg border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-400/30 ${selectClass}`}
     >
       {children}
     </select>
   );
 }
 
-function Chip({ active, label, count, onClick }) {
+function Chip({ active, label, count, onClick, darkMode }) {
+  const activeClass = darkMode
+    ? "bg-white/10 text-white border-white/20"
+    : "bg-blue-100 text-blue-700 border-blue-200";
+  const inactiveClass = darkMode
+    ? "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+    : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200 hover:text-gray-900";
+  
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${
-        active
-          ? "bg-white/10 text-white border-white/20"
-          : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
-      }`}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${active ? activeClass : inactiveClass}`}
     >
       <span>{label}</span>
       <span
