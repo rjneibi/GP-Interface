@@ -45,7 +45,7 @@ function Stat({ label, value, hint }) {
 }
 
 export default function AnalystPerformance() {
-  const user = getUser();
+  const user = getCurrentUser();
   const myKey = user?.email || ""; // robust: assigned_to may be email or id string
 
   const [cases, setCases] = useState([]);
