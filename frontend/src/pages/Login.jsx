@@ -1,146 +1,116 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { setSession } from "../auth/session";
-import { login as apiLogin } from "../services/api";
-
+import { login } from "../auth/session";
 
 export default function Login() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [email, setEmail] = useState("analyst@bank.com");
-  const [password, setPassword] = useState("password");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.trim().length > 0,
-    [email, password]
-  );
-
- const onSubmit = async (e) => {
-  e.preventDefault();
-  if (!canSubmit) return;
-
-  try {
-    const res = await apiLogin(email, password); // { token, role, user }
-    setSession(res);
-
-    if (res.role === "superadmin") nav("/superadmin");
-    else if (res.role === "admin") nav("/admin");
-    else nav("/dashboard");
-  } catch (err) {
-    alert(err.message || "Login failed");
-  }
-};
-
+    try {
+      const user = await login(username, password);
+      
+      // Check if password change is required
+      if (user.must_change_password) {
+        navigate("/change-password");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Invalid username or password");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      {/* Premium background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(80rem_80rem_at_50%_-10%,rgba(56,189,248,0.16),transparent_60%),radial-gradient(70rem_70rem_at_0%_70%,rgba(99,102,241,0.14),transparent_55%),radial-gradient(60rem_60rem_at_100%_60%,rgba(16,185,129,0.10),transparent_55%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/55" />
-        <div className="absolute inset-0 [background:linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.15]" />
-      </div>
-
-      {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/10 grid place-items-center">
-            <span className="text-sm font-semibold text-white/80">SF</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        {/* Logo/Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-full mb-4">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Fraud Detection System</h1>
+          <p className="text-gray-600">Secure Portal Login</p>
+        </div>
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
           <div>
-            <div className="text-sm font-semibold">Secure Fraud Console</div>
-            <div className="text-xs text-white/50">
-              GP2 • Hybrid Model + Web System
-            </div>
-          </div>
-        </div>
-
-        {/* no 3D button */}
-        <div className="text-xs text-white/45 hidden sm:block">
-          Internal demo • API-ready
-        </div>
-      </div>
-
-      {/* Main */}
-      <div className="relative z-10 flex min-h-[calc(100vh-84px)] items-center justify-center px-6 pb-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          {/* Left section */}
-          <div className="hidden lg:block">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Live risk scoring • Role-based access • Reports
-            </div>
-
-            <h1 className="mt-5 text-5xl font-semibold leading-tight">
-              Detect fraud in real time,
-              <span className="text-white/70"> explain decisions</span>,
-              <br />
-              and generate reports.
-            </h1>
-
-            <p className="mt-4 text-white/60 max-w-lg">
-              Your hybrid ML model runs behind an API. The UI visualizes
-              transactions as green / amber / red risk levels for analysts,
-              admins, and superadmins.
-            </p>
-
-            <div className="mt-6 flex gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-xs text-white/50">Status</div>
-                <div className="mt-1 font-semibold">System Online</div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-xs text-white/50">Mode</div>
-                <div className="mt-1 font-semibold">Demo + API-ready</div>
-              </div>
-            </div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter your username"
+              autoComplete="username"
+            />
           </div>
 
-          {/* Right login card */}
-          <div className="w-full flex justify-center lg:justify-end">
-            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.45)] p-7">
-              <h2 className="text-2xl font-semibold">Sign in</h2>
-              <p className="mt-1 text-sm text-white/60">
-                Access dashboards, transactions, and model reports.
-              </p>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter your password"
+              autoComplete="current-password"
+            />
+          </div>
 
-              <form onSubmit={onSubmit} className="mt-6 space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs text-white/60">Email</label>
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
-                    placeholder="you@company.com"
-                    autoComplete="email"
-                  />
-                </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
+          </button>
+        </form>
 
-                <div className="space-y-1">
-                  <label className="text-xs text-white/60">Password</label>
-                  <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type="password"
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="w-full rounded-2xl bg-sky-500 py-3 text-sm font-semibold text-white hover:bg-sky-600 disabled:opacity-50 disabled:hover:bg-sky-500 transition"
-                >
-                  Sign in
-                </button>
-
-                <div className="text-xs text-white/45">
-                  Demo routing: email containing <b>admin</b> or <b>super</b>.
-                </div>
-              </form>
-            </div>
+        {/* Info */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-600 text-center">
+            <strong>Default Credentials:</strong>
+          </p>
+          <div className="mt-2 text-xs text-gray-500 space-y-1">
+            <p>Admin: <code className="bg-gray-100 px-2 py-1 rounded">admin</code> / <code className="bg-gray-100 px-2 py-1 rounded">Admin123!</code></p>
+            <p>Superadmin: <code className="bg-gray-100 px-2 py-1 rounded">superadmin</code> / <code className="bg-gray-100 px-2 py-1 rounded">SuperAdmin123!</code></p>
           </div>
         </div>
       </div>
