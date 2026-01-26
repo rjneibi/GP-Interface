@@ -41,3 +41,4 @@ class Transaction(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     cases = relationship("Case", back_populates="transaction", cascade="all, delete-orphan")
+    notes = relationship("Note", back_populates="transaction", cascade="all, delete-orphan")
