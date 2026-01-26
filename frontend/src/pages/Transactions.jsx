@@ -119,23 +119,6 @@ export default function Transactions() {
     }
   };
 
-  const exportToCsv = async () => {
-    try {
-      const blob = await txApi.exportCsv();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Failed to export transactions. Please try again.");
-    }
-  };
-
   const getRiskLabel = (risk) => {
     if (risk >= 70) return { text: "HIGH", color: darkMode ? "bg-rose-500/20 text-rose-300" : "bg-rose-100 text-rose-700" };
     if (risk >= 40) return { text: "MEDIUM", color: darkMode ? "bg-amber-500/20 text-amber-300" : "bg-amber-100 text-amber-700" };
