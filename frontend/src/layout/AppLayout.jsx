@@ -6,8 +6,8 @@ export default function AppLayout() {
   const user = getCurrentUser();
   const role = user?.role; // "analyst" | "admin" | "superadmin"
 
-  const logout = () => {
-    clearSession();
+  const handleLogout = () => {
+    logout();
     navigate("/login", { replace: true });
   };
 
