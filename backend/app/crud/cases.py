@@ -11,12 +11,26 @@ def list_cases(db: Session, limit: int = 200):
     return db.execute(stmt).scalars().all()
 
 
+def get_case(db: Session, case_id: int):
+    return db.get(Case, case_id)
+
+
+def delete_case(db: Session, case_id: int):
+    obj = db.get(Case, case_id)
+    if obj:
+        db.delete(obj)
+        db.commit()
+        add_audit(db, action="case.delete", meta={"case_id": case_id, "tx_id": obj.tx_id})
+        return True
+    return False
+
+
 def create_case(db: Session, payload: CaseCreate):
     obj = Case(
         tx_id=payload.tx_id,
-        priority=payload.priority,
         assigned_to=payload.assigned_to,
-        status="OPEN",
+        status="NEW",
+        severity="ORANGE"
     )
     db.add(obj)
     db.commit()
