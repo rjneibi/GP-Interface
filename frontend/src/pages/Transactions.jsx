@@ -241,6 +241,23 @@ export default function Transactions() {
     }
   };
 
+  const exportToCsv = async () => {
+    try {
+      const blob = await txApi.exportCsv();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export transactions. Please try again.");
+    }
+  };
+
   const resetFilters = () => {
     setQuery("");
     setUserFilter("all");
