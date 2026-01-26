@@ -126,17 +126,18 @@ export default function Reports() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Comprehensive Reports</h1>
-          <p className="text-gray-600 mt-2">Generate detailed fraud detection analytics and performance reports</p>
+          <h1 className="text-3xl font-semibold text-white">Reports</h1>
+          <p className="text-white/60 mt-2">Generate detailed fraud detection analytics and performance reports</p>
         </div>
         {report && (
           <button
             onClick={exportCSV}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+            className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-6 py-3 font-semibold flex items-center gap-2 transition"
+            data-testid="export-report-csv-btn"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -148,7 +149,7 @@ export default function Reports() {
 
       {/* Quick Stats Cards */}
       {quickStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             title="Today"
             transactions={quickStats.today.transactions.total_transactions}
@@ -175,28 +176,28 @@ export default function Reports() {
             transactions={quickStats.all_time.transactions.total_transactions}
             highRisk={quickStats.all_time.risk.total_high_risk}
             cases={quickStats.all_time.cases.total_cases}
-            color="gray"
+            color="slate"
           />
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Generate Detailed Report</h2>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Generate Detailed Report</h2>
         
         <div className="space-y-4">
           {/* Period Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Period</label>
-            <div className="flex gap-2">
+            <label className="block text-sm font-medium text-white/70 mb-2">Select Period</label>
+            <div className="flex gap-2 flex-wrap">
               {["today", "7days", "30days", "all_time"].map((period) => (
                 <button
                   key={period}
                   onClick={() => setPeriod(period)}
-                  className={`px-4 py-2 rounded-lg font-medium ${
+                  className={`px-4 py-2 rounded-xl font-medium transition ${
                     selectedPeriod === period
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                      : "bg-white/5 text-white/70 hover:bg-white/10 border border-white/10"
                   }`}
                 >
                   {period === "today" && "Today"}
@@ -211,7 +212,7 @@ export default function Reports() {
           {/* Custom Date Range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Start Date</label>
               <input
                 type="date"
                 value={startDate}
@@ -219,11 +220,11 @@ export default function Reports() {
                   setStartDate(e.target.value);
                   setSelectedPeriod("custom");
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">End Date</label>
               <input
                 type="date"
                 value={endDate}
@@ -231,7 +232,7 @@ export default function Reports() {
                   setEndDate(e.target.value);
                   setSelectedPeriod("custom");
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
           </div>
@@ -239,14 +240,15 @@ export default function Reports() {
           <button
             onClick={generateReport}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition"
+            className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold py-3 px-4 transition"
+            data-testid="generate-report-btn"
           >
             {loading ? "Generating Report..." : "Generate Comprehensive Report"}
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-200 px-4 py-3">
             {error}
           </div>
         )}
@@ -256,10 +258,10 @@ export default function Reports() {
       {report && (
         <div className="space-y-6">
           {/* Report Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-6">
+          <div className="rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
             <h2 className="text-2xl font-bold mb-2">Fraud Detection Analysis Report</h2>
-            <p className="text-blue-100">Generated: {new Date(report.report_generated_at).toLocaleString()}</p>
-            <p className="text-blue-100">Period: {report.report_period}</p>
+            <p className="text-purple-100">Generated: {new Date(report.report_generated_at).toLocaleString()}</p>
+            <p className="text-purple-100">Period: {report.report_period}</p>
           </div>
 
           {/* Transaction Metrics */}
@@ -309,33 +311,33 @@ export default function Reports() {
           {/* Geographic Analysis */}
           {report.country_analysis && report.country_analysis.length > 0 && (
             <MetricsSection title="Geographic Analysis" icon="🌍">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-white/5">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transactions</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Risk</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">High Risk Count</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Country</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Transactions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Total Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Avg Risk</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">High Risk Count</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-white/5">
                     {report.country_analysis.map((country, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{country.country}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{country.transaction_count.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">${country.total_amount.toLocaleString()}</td>
+                      <tr key={idx} className="hover:bg-white/5">
+                        <td className="px-6 py-4 text-sm font-medium text-white">{country.country}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">{country.transaction_count.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">${country.total_amount.toLocaleString()}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            country.average_risk >= 70 ? 'bg-red-100 text-red-800' :
-                            country.average_risk >= 40 ? 'bg-orange-100 text-orange-800' :
-                            'bg-green-100 text-green-800'
+                            country.average_risk >= 70 ? 'bg-rose-500/20 text-rose-200' :
+                            country.average_risk >= 40 ? 'bg-amber-500/20 text-amber-200' :
+                            'bg-emerald-500/20 text-emerald-200'
                           }`}>
                             {country.average_risk}%
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{country.high_risk_count}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">{country.high_risk_count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -347,29 +349,29 @@ export default function Reports() {
           {/* Merchant Analysis */}
           {report.merchant_analysis && report.merchant_analysis.length > 0 && (
             <MetricsSection title="Merchant Risk Analysis" icon="🏪">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-white/5">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Merchant</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transactions</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Risk</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">High Risk %</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Merchant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Transactions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Total Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Avg Risk</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">High Risk %</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-white/5">
                     {report.merchant_analysis.map((merchant, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{merchant.merchant}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{merchant.transaction_count.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">${merchant.total_amount.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{merchant.average_risk}%</td>
+                      <tr key={idx} className="hover:bg-white/5">
+                        <td className="px-6 py-4 text-sm font-medium text-white">{merchant.merchant}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">{merchant.transaction_count.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">${merchant.total_amount.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-white/70">{merchant.average_risk}%</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            merchant.high_risk_percentage >= 50 ? 'bg-red-100 text-red-800' :
-                            merchant.high_risk_percentage >= 25 ? 'bg-orange-100 text-orange-800' :
-                            'bg-green-100 text-green-800'
+                            merchant.high_risk_percentage >= 50 ? 'bg-rose-500/20 text-rose-200' :
+                            merchant.high_risk_percentage >= 25 ? 'bg-amber-500/20 text-amber-200' :
+                            'bg-emerald-500/20 text-emerald-200'
                           }`}>
                             {merchant.high_risk_percentage}%
                           </span>
@@ -387,16 +389,16 @@ export default function Reports() {
             <MetricsSection title="Top Risk Transactions" icon="🚨">
               <div className="space-y-3">
                 {report.top_risk_transactions.map((tx, idx) => (
-                  <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
+                  <div key={idx} className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 flex justify-between items-center">
                     <div>
-                      <div className="font-semibold text-gray-900">{tx.tx_id}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="font-semibold text-white">{tx.tx_id}</div>
+                      <div className="text-sm text-white/60">
                         {tx.merchant} • {tx.country} • ${tx.amount.toLocaleString()}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-red-600">{tx.risk}%</div>
-                      <div className="text-xs text-red-500">Risk Score</div>
+                      <div className="text-2xl font-bold text-rose-300">{tx.risk}%</div>
+                      <div className="text-xs text-rose-400">Risk Score</div>
                     </div>
                   </div>
                 ))}
@@ -412,27 +414,27 @@ export default function Reports() {
 // Helper Components
 function StatCard({ title, transactions, highRisk, cases, color }) {
   const colorClasses = {
-    blue: "bg-blue-50 border-blue-200",
-    purple: "bg-purple-50 border-purple-200",
-    indigo: "bg-indigo-50 border-indigo-200",
-    gray: "bg-gray-50 border-gray-200",
+    blue: "border-blue-500/20 bg-blue-500/10",
+    purple: "border-purple-500/20 bg-purple-500/10",
+    indigo: "border-indigo-500/20 bg-indigo-500/10",
+    slate: "border-white/10 bg-white/5",
   };
 
   return (
-    <div className={`${colorClasses[color]} border rounded-lg p-6`}>
-      <div className="text-sm font-medium text-gray-600 mb-2">{title}</div>
+    <div className={`${colorClasses[color]} border rounded-2xl p-5`}>
+      <div className="text-sm font-medium text-white/60 mb-3">{title}</div>
       <div className="space-y-2">
         <div className="flex justify-between">
-          <span className="text-xs text-gray-500">Transactions:</span>
-          <span className="text-sm font-semibold">{transactions}</span>
+          <span className="text-xs text-white/50">Transactions:</span>
+          <span className="text-sm font-semibold text-white">{transactions}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-xs text-gray-500">High Risk:</span>
-          <span className="text-sm font-semibold text-red-600">{highRisk}</span>
+          <span className="text-xs text-white/50">High Risk:</span>
+          <span className="text-sm font-semibold text-rose-300">{highRisk}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-xs text-gray-500">Cases:</span>
-          <span className="text-sm font-semibold text-orange-600">{cases}</span>
+          <span className="text-xs text-white/50">Cases:</span>
+          <span className="text-sm font-semibold text-amber-300">{cases}</span>
         </div>
       </div>
     </div>
@@ -441,8 +443,8 @@ function StatCard({ title, transactions, highRisk, cases, color }) {
 
 function MetricsSection({ title, icon, children }) {
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
         <span>{icon}</span>
         {title}
       </h3>
@@ -453,17 +455,17 @@ function MetricsSection({ title, icon, children }) {
 
 function MetricCard({ label, value, color }) {
   const colorClasses = {
-    red: "bg-red-50 border-red-200 text-red-800",
-    orange: "bg-orange-50 border-orange-200 text-orange-800",
-    yellow: "bg-yellow-50 border-yellow-200 text-yellow-800",
-    green: "bg-green-50 border-green-200 text-green-800",
-    blue: "bg-blue-50 border-blue-200 text-blue-800",
+    red: "border-rose-500/20 bg-rose-500/10 text-rose-200",
+    orange: "border-amber-500/20 bg-amber-500/10 text-amber-200",
+    yellow: "border-yellow-500/20 bg-yellow-500/10 text-yellow-200",
+    green: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
+    blue: "border-blue-500/20 bg-blue-500/10 text-blue-200",
   };
 
   return (
-    <div className={`border rounded-lg p-4 ${color ? colorClasses[color] : 'bg-gray-50 border-gray-200'}`}>
-      <div className="text-xs text-gray-600 mb-1">{label}</div>
-      <div className={`text-2xl font-bold ${color ? '' : 'text-gray-900'}`}>{value}</div>
+    <div className={`border rounded-xl p-4 ${color ? colorClasses[color] : 'border-white/10 bg-white/5'}`}>
+      <div className="text-xs text-white/50 mb-1">{label}</div>
+      <div className={`text-2xl font-bold ${color ? '' : 'text-white'}`}>{value}</div>
     </div>
   );
 }
