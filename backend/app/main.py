@@ -60,8 +60,7 @@ app.include_router(cases.router)
 
 
 @app.get("/health")
-@limiter.limit("10/minute")
-def health():
+async def health(request: Request):
     """Health check endpoint with rate limiting"""
     return {
         "status": "ok",
@@ -71,7 +70,7 @@ def health():
 
 
 @app.get("/")
-def root():
+async def root(request: Request):
     """Root endpoint"""
     return {
         "message": "Fraud Detection API",
