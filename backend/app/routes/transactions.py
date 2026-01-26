@@ -58,3 +58,51 @@ async def delete(request: Request, tx_id: str, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return {"message": "Transaction deleted successfully"}
+
+
+@router.get("/export/csv")
+@limiter.limit("10/minute")
+async def export_transactions_csv(
+    request: Request,
+    limit: int = Query(500, le=5000),
+    db: Session = Depends(get_db)
+):
+    """Export transactions as CSV file"""
+    transactions = list_transactions(db, limit=limit)
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow([
+        'tx_id', 'user', 'amount', 'country', 'device', 'channel', 
+        'merchant', 'card_type', 'risk_score', 'label', 'timestamp', 'created_at'
+    ])
+    
+    # Write data
+    for tx in transactions:
+        label_text = 'GREEN' if tx.risk < 40 else ('ORANGE' if tx.risk < 70 else 'RED') if tx.risk is not None else 'N/A'
+        writer.writerow([
+            tx.tx_id,
+            tx.user,
+            tx.amount,
+            tx.country or '',
+            tx.device or '',
+            tx.channel or '',
+            tx.merchant or '',
+            tx.card_type or '',
+            f"{tx.risk:.1f}%" if tx.risk is not None else 'N/A',
+            label_text,
+            tx.ts.isoformat() if tx.ts else '',
+            tx.created_at.isoformat() if tx.created_at else ''
+        ])
+    
+    output.seek(0)
+    
+    filename = f"transactions_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
