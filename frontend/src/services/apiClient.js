@@ -87,6 +87,21 @@ export const txApi = {
       method: "DELETE",
     });
   },
+
+  async exportCsv() {
+    const token = localStorage.getItem("access_token");
+    const response = await fetch(`${API_BASE}/api/transactions/export/csv`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+    
+    return response.blob();
+  },
 };
 
 // ---- Notes ----
