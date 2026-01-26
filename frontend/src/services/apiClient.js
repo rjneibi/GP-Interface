@@ -66,6 +66,16 @@ export const txApi = {
     }
     return request(`/api/transactions/${encodeURIComponent(txId)}`);
   },
+
+  async delete(txId) {
+    if (USE_MOCKS) {
+      await sleep(100);
+      return mockDb.deleteTx(txId);
+    }
+    return request(`/api/transactions/${encodeURIComponent(txId)}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // ---- Notes ----
