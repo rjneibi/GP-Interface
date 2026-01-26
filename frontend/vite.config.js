@@ -8,7 +8,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     allowedHosts: [
-      'transact-shield-2.preview.emergentagent.com',
+      'fraudguard-40.preview.emergentagent.com',
       'localhost',
       '127.0.0.1'
     ]
