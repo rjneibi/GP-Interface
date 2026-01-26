@@ -1,8 +1,9 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { getRole } from "./session";
+import { getCurrentUser } from "./session";
 
 export default function RequireRole({ allow = [] }) {
-  const role = getRole();
+  const user = getCurrentUser();
+  const role = user?.role;
   const location = useLocation();
 
   // Not logged in? go login

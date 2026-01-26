@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { caseApi } from "../services/caseApi";
-import { getUser } from "../auth/session";
+import { getCurrentUser } from "../auth/session";
 
 const pill = {
   ok: "bg-emerald-500/15 text-emerald-200 border-emerald-500/20",
