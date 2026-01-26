@@ -187,13 +187,6 @@ export default function Transactions() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={exportToCsv}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${btnSecondary}`}
-            data-testid="export-csv-btn"
-          >
-            Export CSV
-          </button>
-          <button
             onClick={clearAllTransactions}
             className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${btnSecondary}`}
             data-testid="clear-transactions-btn"
