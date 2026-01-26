@@ -1,10 +1,10 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { clearSession, getUser, getRole } from "../auth/session";
+import { logout, getCurrentUser } from "../auth/session";
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const user = getUser();
-  const role = getRole(); // "analyst" | "admin" | "superadmin"
+  const user = getCurrentUser();
+  const role = user?.role; // "analyst" | "admin" | "superadmin"
 
   const logout = () => {
     clearSession();
