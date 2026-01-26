@@ -4,7 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import logging
 
-from app.routes import transactions, notes, audit, cases
+from app.routes import transactions, notes, audit, cases, auth, reports
 from app.middleware.security_middleware import (
     SecurityHeadersMiddleware,
     RequestValidationMiddleware,
@@ -53,10 +53,12 @@ app.add_middleware(RequestValidationMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(transactions.router)
 app.include_router(notes.router)
 app.include_router(audit.router)
 app.include_router(cases.router)
+app.include_router(reports.router)
 
 
 @app.get("/health")
