@@ -1,352 +1,294 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  getUsers,
-  getSettings,
-  getAuditLogs,
-  createUser,
-  toggleUserStatus,
-  updateThresholds,
-  resetAdminDemo,
-  initAdminStore,
-} from "../services/adminStore";
+import { useState, useEffect } from "react";
+import { getAccessToken } from "../auth/session";
 
-function safeSnap() {
-  // Always return safe defaults so UI NEVER crashes
-  const settings = getSettings?.() || {};
-  const users = Array.isArray(getUsers?.()) ? getUsers() : [];
-  const logs = Array.isArray(getAuditLogs?.()) ? getAuditLogs() : [];
-
-  return {
-    settings: {
-      orangeThreshold: Number.isFinite(Number(settings.orangeThreshold))
-        ? Number(settings.orangeThreshold)
-        : 40,
-      redThreshold: Number.isFinite(Number(settings.redThreshold))
-        ? Number(settings.redThreshold)
-        : 70,
-      autoBlockRed: typeof settings.autoBlockRed === "boolean" ? settings.autoBlockRed : false,
-    },
-    users,
-    logs,
-  };
-}
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8001";
 
 export default function Admin() {
-  const [snap, setSnap] = useState(() => safeSnap());
-
-  // create user form
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  
+  // Form state
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("analyst");
 
-  // editable inputs (safe default)
-  const [orangeTh, setOrangeTh] = useState(() => safeSnap().settings.orangeThreshold);
-  const [redTh, setRedTh] = useState(() => safeSnap().settings.redThreshold);
-  const [autoBlock, setAutoBlock] = useState(() => safeSnap().settings.autoBlockRed);
-
-  // search
-  const [q, setQ] = useState("");
-
-  const pullLatest = () => setSnap(safeSnap());
-
-  // ✅ IMPORTANT: init inside effect (NOT at module scope)
   useEffect(() => {
-    try {
-      initAdminStore?.();
-    } catch (e) {
-      console.error("initAdminStore failed:", e);
-    }
-    pullLatest();
-
-    const t = setInterval(() => {
-      try {
-        initAdminStore?.(); // safe re-init
-      } catch (e) {
-        console.error("initAdminStore interval failed:", e);
-      }
-      setSnap(safeSnap());
-    }, 800);
-
-    return () => clearInterval(t);
+    fetchUsers();
   }, []);
 
-  const { users, settings, logs } = snap;
-
-  const filteredUsers = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return users;
-
-    return users.filter((u) => {
-      const email = String(u.email || "").toLowerCase();
-      const role = String(u.role || "").toLowerCase();
-      const status = String(u.status || "").toLowerCase();
-      const id = String(u.id || "").toLowerCase(); // ✅ no crash if id is number
-
-      return (
-        email.includes(query) ||
-        role.includes(query) ||
-        status.includes(query) ||
-        id.includes(query)
-      );
-    });
-  }, [users, q]);
-
-  const onCreateUser = () => {
+  const fetchUsers = async () => {
     try {
-      if (!email.trim()) throw new Error("Email is required");
-      createUser({ email: email.trim(), role });
-      setEmail("");
-      pullLatest();
-    } catch (e) {
-      alert(e?.message || "Create user failed");
+      const token = getAccessToken();
+      const response = await fetch(`${API_BASE}/api/auth/users`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const onToggleUser = (id) => {
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    
     try {
-      toggleUserStatus(id);
-      pullLatest();
-    } catch (e) {
-      alert(e?.message || "Toggle failed");
-    }
-  };
-
-  const onSaveThresholds = () => {
-    try {
-      const o = Number(orangeTh);
-      const r = Number(redTh);
-
-      if (!Number.isFinite(o) || o <= 0 || o >= 100) throw new Error("Orange threshold must be 1..99");
-      if (!Number.isFinite(r) || r <= 0 || r > 100) throw new Error("Red threshold must be 1..100");
-      if (o >= r) throw new Error("Orange must be < Red");
-
-      updateThresholds({
-        orangeThreshold: o,
-        redThreshold: r,
-        autoBlockRed: Boolean(autoBlock),
+      const token = getAccessToken();
+      const response = await fetch(`${API_BASE}/api/auth/users`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, email, role }),
       });
 
-      pullLatest();
-      alert("Thresholds updated ✅");
-    } catch (e) {
-      alert(e?.message || "Save failed");
+      if (response.ok) {
+        const data = await response.json();
+        setNewPassword(data.temporary_password);
+        
+        // Reset form
+        setUsername("");
+        setEmail("");
+        setRole("analyst");
+        
+        // Refresh users list
+        fetchUsers();
+        
+        // Show password modal
+        alert(`User created! Temporary Password: ${data.temporary_password}\n\nPlease save this password and share it securely with the user.`);
+        setShowCreateForm(false);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error creating user:", error);
+      alert("Failed to create user");
     }
   };
 
-  const onResetDemo = () => {
-    if (!confirm("Reset admin demo data?")) return;
+  const handleResetPassword = async (userId, username) => {
+    if (!confirm(`Reset password for ${username}?`)) return;
 
     try {
-      resetAdminDemo();
-      initAdminStore?.();
+      const token = getAccessToken();
+      const response = await fetch(`${API_BASE}/api/auth/users/${userId}/reset-password`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
-      const next = safeSnap();
-      setSnap(next);
-
-      setOrangeTh(next.settings.orangeThreshold);
-      setRedTh(next.settings.redThreshold);
-      setAutoBlock(next.settings.autoBlockRed);
-    } catch (e) {
-      alert(e?.message || "Reset failed");
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Password reset! New temporary password: ${data.temporary_password}\n\nPlease share this securely with the user.`);
+      } else {
+        alert("Failed to reset password");
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      alert("Failed to reset password");
     }
   };
 
-  return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">Admin Console</h1>
-          <p className="text-white/60 mt-1">
-            User management + risk thresholds + audit logs (mock, API-ready).
-          </p>
-        </div>
+  const handleDeleteUser = async (userId, username) => {
+    if (!confirm(`Delete user ${username}? This action cannot be undone.`)) return;
 
+    try {
+      const token = getAccessToken();
+      const response = await fetch(`${API_BASE}/api/auth/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        alert("User deleted successfully");
+        fetchUsers();
+      } else {
+        alert("Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to delete user");
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+        <p className="text-gray-600 mt-2">Manage user accounts and permissions</p>
+      </div>
+
+      {/* Create User Button */}
+      <div className="mb-6">
         <button
-          onClick={onResetDemo}
-          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
         >
-          Reset Demo Data
+          {showCreateForm ? "Cancel" : "+ Create New User"}
         </button>
       </div>
 
-      {/* Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card title="Risk Thresholds" subtitle="Controls GREEN / ORANGE / RED labels">
-          <div className="space-y-3">
-            <Field label="Orange threshold">
+      {/* Create User Form */}
+      {showCreateForm && (
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Create New User</h2>
+          <form onSubmit={handleCreateUser} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Username *
+              </label>
               <input
-                value={orangeTh}
-                onChange={(e) => setOrangeTh(e.target.value)}
-                type="number"
-                min={1}
-                max={99}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter username"
               />
-            </Field>
-
-            <Field label="Red threshold">
-              <input
-                value={redTh}
-                onChange={(e) => setRedTh(e.target.value)}
-                type="number"
-                min={1}
-                max={100}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
-              />
-            </Field>
-
-            <label className="flex items-center gap-3 text-sm text-white/70">
-              <input
-                checked={autoBlock}
-                onChange={(e) => setAutoBlock(e.target.checked)}
-                type="checkbox"
-                className="h-4 w-4 accent-sky-500"
-              />
-              Auto-block RED transactions (policy)
-            </label>
-
-            <button
-              onClick={onSaveThresholds}
-              className="w-full rounded-2xl bg-sky-500 py-3 text-sm font-semibold hover:bg-sky-600 transition"
-            >
-              Save Thresholds
-            </button>
-
-            <div className="text-xs text-white/45">
-              Stored: ORANGE ≥ <b>{settings.orangeThreshold}</b> • RED ≥ <b>{settings.redThreshold}</b>
             </div>
-          </div>
-        </Card>
 
-        <Card title="Create User" subtitle="Adds a new user (mock DB via localStorage)">
-          <div className="space-y-3">
-            <Field label="Email">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email *
+              </label>
               <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
-                placeholder="new.user@bank.com"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="user@example.com"
               />
-            </Field>
+            </div>
 
-            <Field label="Role">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Role *
+              </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-3 py-3 text-sm outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="analyst">Analyst</option>
                 <option value="admin">Admin</option>
-                <option value="superadmin">SuperAdmin</option>
+                <option value="superadmin">Superadmin</option>
               </select>
-            </Field>
-
-            <button
-              onClick={onCreateUser}
-              className="w-full rounded-2xl bg-emerald-500 py-3 text-sm font-semibold hover:bg-emerald-600 transition"
-            >
-              Create User
-            </button>
-
-            <div className="text-xs text-white/45">(Later: POST /admin/users → DB)</div>
-          </div>
-        </Card>
-
-        <Card title="Audit Logs" subtitle="System actions (important for fraud systems)">
-          <div className="space-y-2 max-h-[320px] overflow-auto pr-1">
-            {logs.length === 0 ? (
-              <div className="text-sm text-white/60">No audit logs yet.</div>
-            ) : (
-              [...logs]
-                .slice(0, 40)
-                .map((l) => (
-                  <div key={l.id || `${l.action}-${l.created_at || l.time || Math.random()}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-xs text-white/50">
-                      {l.time || l.created_at || "—"}
-                    </div>
-                    <div className="text-sm font-semibold mt-1">{l.action || "—"}</div>
-                    <div className="text-xs text-white/60 mt-1">
-                      {JSON.stringify(l.meta || {})}
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Users table */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <div className="text-lg font-semibold">Users</div>
-            <div className="text-xs text-white/50">Toggle active/disabled (mock policy)</div>
-          </div>
-
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="w-full md:w-72 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-400/30"
-            placeholder="Search users..."
-          />
-        </div>
-
-        <div className="grid grid-cols-5 gap-2 px-4 py-3 text-xs text-white/50 border-b border-white/10">
-          <div>ID</div>
-          <div>Email</div>
-          <div>Role</div>
-          <div>Status</div>
-          <div>Action</div>
-        </div>
-
-        {filteredUsers.map((u) => (
-          <div
-            key={u.id || u.email}
-            className="grid grid-cols-5 gap-2 px-4 py-3 text-sm border-b border-white/5 last:border-b-0"
-          >
-            <div className="text-white/80">{String(u.id ?? "—")}</div>
-            <div className="text-white/70">{String(u.email ?? "—")}</div>
-            <div className="text-white/70 uppercase">{String(u.role ?? "—")}</div>
-            <div className="text-white/70">
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-xs ${
-                  u.status === "active"
-                    ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/20"
-                    : "bg-white/5 text-white/60 border-white/10"
-                }`}
-              >
-                {String(u.status ?? "—")}
-              </span>
             </div>
-            <div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> A random secure password will be generated. 
+                You must save and share it securely with the user.
+              </p>
+            </div>
+
+            <div className="flex gap-4">
               <button
-                onClick={() => onToggleUser(u.id)}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/10 transition"
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
               >
-                {u.status === "active" ? "Disable" : "Enable"}
+                Create User
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold"
+              >
+                Cancel
               </button>
             </div>
+          </form>
+        </div>
+      )}
+
+      {/* Users List */}
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Username</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Email</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Role</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Status</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Last Login</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {users.map((user) => (
+              <tr key={user.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm text-gray-900">{user.username}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    user.role === 'superadmin' ? 'bg-purple-100 text-purple-800' :
+                    user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    {user.is_active ? (
+                      <span className="text-green-600 text-xs">● Active</span>
+                    ) : (
+                      <span className="text-red-600 text-xs">● Inactive</span>
+                    )}
+                    {user.must_change_password && (
+                      <span className="text-orange-600 text-xs">(Must change pwd)</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {user.last_login ? new Date(user.last_login).toLocaleString() : "Never"}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResetPassword(user.id, user.username)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Reset Password
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(user.id, user.username)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {users.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            No users found. Create your first user above.
           </div>
-        ))}
+        )}
       </div>
-    </div>
-  );
-}
-
-function Card({ title, subtitle, children }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <div className="text-lg font-semibold">{title}</div>
-      {subtitle && <div className="text-xs text-white/50 mt-1">{subtitle}</div>}
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div className="space-y-1">
-      <div className="text-xs text-white/60">{label}</div>
-      {children}
     </div>
   );
 }
