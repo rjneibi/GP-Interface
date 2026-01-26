@@ -7,6 +7,7 @@ import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
 import SuperAdmin from "./pages/SuperAdmin";
 import Cases from "./pages/Cases";
+import CaseDetails from "./pages/CaseDetails";
 import Intelligence from "./pages/Intelligence";
 
 // ✅ NEW pages
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/cases" element={<Cases />} />
+            <Route path="/cases/:caseId" element={<CaseDetails />} />
             <Route path="/intelligence" element={<Intelligence />} />
 
             {/* ✅ NEW Analyst value pages */}
