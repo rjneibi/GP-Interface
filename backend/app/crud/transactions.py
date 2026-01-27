@@ -5,6 +5,7 @@ from app.models.transaction import Transaction
 from app.models.case import Case
 from app.schemas.transaction import TransactionCreate
 from app.crud.audit import add_audit
+from ml.fraud_model import predict_fraud
 
 
 def compute_risk_score(transaction_data: dict):
@@ -91,46 +92,32 @@ def delete_transaction(db: Session, tx_id: str):
     return False
 
 
-def create_transaction(db: Session, payload: TransactionCreate):
-    # Compute risk score
-    transaction_dict = payload.model_dump()
-    risk_score, reasons = compute_risk_score(transaction_dict)
+def create_transaction(db: Session, transaction: TransactionCreate):
+    """Create transaction with ML-based fraud prediction"""
     
-    # Create transaction with computed risk
-    obj = Transaction(**transaction_dict)
-    obj.risk = risk_score
-    obj.explanation = "; ".join(reasons) if reasons else "Low risk transaction"
+    # Prepare transaction data
+    tx_data = transaction.model_dump()
     
-    db.add(obj)
-    db.commit()
-    db.refresh(obj)
-    
-    # Add audit log
-    add_audit(db, action="transaction.create", meta={
-        "tx_id": obj.tx_id, 
-        "amount": obj.amount,
-        "risk": risk_score
-    })
-    
-    # Auto-create case if high risk (>= 70)
-    if risk_score >= 70:
-        severity = "RED" if risk_score >= 90 else "ORANGE"
-        case = Case(
-            tx_id=obj.tx_id,
-            status="NEW",
-            severity=severity
-        )
-        db.add(case)
-        db.commit()
-        db.refresh(case)
+    # Use ML model to predict fraud risk
+    try:
+        prediction = predict_fraud(tx_data)
+        risk_score = prediction['risk_score']
         
-        # Log case auto-creation
-        add_audit(db, action="case.auto_created", meta={
-            "case_id": case.id,
-            "tx_id": obj.tx_id,
-            "risk": risk_score,
-            "severity": severity,
-            "reason": "Auto-created from high-risk transaction"
-        })
+        print(f"🤖 ML Prediction: Risk={risk_score}%, "
+              f"Confidence={prediction.get('confidence', 0):.2%}")
+        
+    except Exception as e:
+        print(f"⚠️ ML prediction failed: {e}, using fallback")
+        # Fallback to your existing risk calculation
+        amount = tx_data.get('amount', 0)
+        risk_score = min(30 + (amount // 100), 100)
     
-    return obj
+    tx_data['risk'] = risk_score
+    
+    # Create database record
+    db_transaction = Transaction(**tx_data)
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    
+    return db_transaction

@@ -28,16 +28,15 @@ export default function AppLayout() {
   };
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/transactions", label: "Transactions", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/cases", label: "Cases", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/intelligence", label: "Intelligence", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/decision-assistant", label: "Decision Assistant", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/pattern-explorer", label: "Pattern Explorer", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/performance", label: "Performance", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/reports", label: "Reports", roles: ["analyst", "admin", "superadmin"] },
-    { to: "/admin", label: "Admin", roles: ["admin", "superadmin"] },
-    { to: "/superadmin", label: "SuperAdmin", roles: ["superadmin"] },
+    { to: "/dashboard", label: "📊 Dashboard", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/transactions", label: "💳 Transactions", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/cases", label: "📋 Cases", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/fraud-analytics", label: "📈 Fraud Analytics", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/alert-management", label: "🚨 Alert Management", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/ml-dashboard", label: "🤖 ML Dashboard", roles: ["admin", "superadmin"] },
+    { to: "/reports", label: "📄 Reports", roles: ["analyst", "admin", "superadmin"] },
+    { to: "/admin", label: "👥 Admin", roles: ["admin", "superadmin"] },
+    { to: "/superadmin", label: "⚡ SuperAdmin", roles: ["superadmin"] },
   ].filter((item) => item.roles.includes(role));
 
   return (
