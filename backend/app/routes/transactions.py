@@ -7,6 +7,8 @@ import io
 
 from app.db import get_db
 from app.schemas.transaction import TransactionOut, TransactionCreate
+from app.schemas.user import UserOut
+from app.routes.auth import get_current_user
 from app.crud.transactions import (
     list_transactions, 
     create_transaction,

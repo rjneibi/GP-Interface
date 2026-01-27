@@ -42,12 +42,10 @@ export default function App() {
             {/* Reports */}
             <Route path="/reports" element={<Reports />} />
             
-            {/* ML Dashboard (Admin+ only) */}
-            <Route path="/ml-dashboard" element={
-              <RequireRole allowedRoles={["admin", "superadmin"]}>
-                <MLDashboard />
-              </RequireRole>
-            } />
+            {/* ML Dashboard (Admin+ only) - FIXED: use 'allow' prop */}
+            <Route element={<RequireRole allow={["admin", "superadmin"]} />}>
+              <Route path="/ml-dashboard" element={<MLDashboard />} />
+            </Route>
             
             {/* Admin-only */}
             <Route element={<RequireRole allow={["admin", "superadmin"]} />}>
