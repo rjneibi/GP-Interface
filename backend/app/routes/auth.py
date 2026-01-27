@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from app.db import get_db
 from app.schemas.user import (
@@ -14,6 +14,14 @@ from app.crud.users import (
 )
 from app.security import create_access_token, verify_token, TokenData
 from app.middleware.security_middleware import limiter
+
+# ✅ ADD THIS IMPORT
+from app.crud.audit_logger import (
+    log_user_login,
+    log_password_change,
+    log_user_created,
+    log_user_deleted
+)
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 security = HTTPBearer()
@@ -52,14 +60,31 @@ def require_role(allowed_roles: list[str]):
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
 async def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
-    """Login endpoint"""
+    """Login endpoint with audit logging"""
+    ip_address = request.client.host if request else None
+    
     user = authenticate_user(db, login_data.username, login_data.password)
     
     if not user:
+        # ✅ LOG FAILED LOGIN
+        log_user_login(
+            db=db,
+            username=login_data.username,
+            user_id=None,
+            ip_address=ip_address,
+            success=False
+        )
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password"
         )
+    
+    # Update last login timestamp
+    from app.models.user import User
+    db_user = db.query(User).filter(User.id == user.id).first()
+    if db_user:
+        db_user.last_login = datetime.now()
+        db.commit()
     
     # Create access token
     access_token = create_access_token(
@@ -69,6 +94,15 @@ async def login(request: Request, login_data: LoginRequest, db: Session = Depend
             "user_id": user.id
         },
         expires_delta=timedelta(hours=8)
+    )
+    
+    # ✅ LOG SUCCESSFUL LOGIN
+    log_user_login(
+        db=db,
+        username=user.username,
+        user_id=user.id,
+        ip_address=ip_address,
+        success=True
     )
     
     return Token(
@@ -84,7 +118,7 @@ async def change_user_password(
     current_user: UserOut = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Change password (must provide old password)"""
+    """Change password with audit logging"""
     success = change_password(
         db,
         current_user.id,
@@ -94,6 +128,14 @@ async def change_user_password(
     
     if not success:
         raise HTTPException(status_code=400, detail="Invalid old password")
+    
+    # ✅ LOG PASSWORD CHANGE
+    log_password_change(
+        db=db,
+        username=current_user.username,
+        user_id=current_user.id,
+        forced=False
+    )
     
     return {"message": "Password changed successfully"}
 
@@ -120,9 +162,19 @@ async def create_new_user(
     current_user: UserOut = Depends(require_role(["admin", "superadmin"])),
     db: Session = Depends(get_db)
 ):
-    """Create new user with random password (admin only)"""
+    """Create new user with audit logging"""
     try:
         user, plain_password = create_user(db, user_data, current_user.username)
+        
+        # ✅ LOG USER CREATION
+        log_user_created(
+            db=db,
+            created_by_username=current_user.username,
+            created_by_id=current_user.id,
+            new_username=user.username,
+            new_user_role=user.role
+        )
+        
         return {
             "user": UserOut.model_validate(user),
             "temporary_password": plain_password,
@@ -152,14 +204,25 @@ async def delete_user_account(
     current_user: UserOut = Depends(require_role(["admin", "superadmin"])),
     db: Session = Depends(get_db)
 ):
-    """Delete user (admin only)"""
-    # Prevent deleting yourself
+    """Delete user with audit logging"""
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    
+    from app.models.user import User
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    deleted_username = user_to_delete.username if user_to_delete else "unknown"
     
     success = delete_user(db, user_id, current_user.username)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # ✅ LOG USER DELETION
+    log_user_deleted(
+        db=db,
+        deleted_by_username=current_user.username,
+        deleted_by_id=current_user.id,
+        deleted_username=deleted_username
+    )
     
     return {"message": "User deleted successfully"}
 
